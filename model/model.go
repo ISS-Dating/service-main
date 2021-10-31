@@ -7,25 +7,26 @@ const (
 )
 
 type User struct {
-	ID          uint64 `json:"id"`
-	PhotoURL    string `json:"photo_url"`
-	Name        string `json:"name"`
-	Surname     string `json:"surname"`
-	Username    string `json:"username"`
-	Password    string `json:"password"`
-	Email       string `json:"email"`
-	Gender      string `json:"gender"`
-	City        string `json:"city"`
-	Country     string `json:"country"`
-	Age         uint   `json:"age"`
-	Description string `json:"description"`
-	LookingFor  string `json:"looking_for"`
-	Status      string `json:"status"`
-	Education   string `json:"education"`
-	Mood        string `json:"mood"`
-	Banned      bool   `json:"banned"`
-	Role        string `json:"role"`
-	Stats       Stats  `json:"stats"`
+	ID          uint64      `json:"id"`
+	PhotoURL    string      `json:"photo_url"`
+	Name        string      `json:"name"`
+	Surname     string      `json:"surname"`
+	Username    string      `json:"username"`
+	Password    string      `json:"password"`
+	Email       string      `json:"email"`
+	Gender      string      `json:"gender"`
+	City        string      `json:"city"`
+	Country     string      `json:"country"`
+	Age         uint        `json:"age"`
+	Description string      `json:"description"`
+	LookingFor  string      `json:"looking_for"`
+	Status      string      `json:"status"`
+	Education   string      `json:"education"`
+	Mood        string      `json:"mood"`
+	Banned      bool        `json:"banned"`
+	Role        string      `json:"role"`
+	Stats       Stats       `json:"stats"`
+	Questionary Questionary `json:"questions"`
 }
 
 type Stats struct {
@@ -42,5 +43,9 @@ type Questionary struct {
 	Travel    string `json:"travel_question"`
 	Biography string `json:"biography_question"`
 	Main      string `json:"main_question"`
-	User      User   `json:"user"`
+}
+
+type Acquaintance struct {
+	UserAUsername uint64 `json:"user_a"`
+	UserBUsername uint64 `json:"user_b"`
 }
