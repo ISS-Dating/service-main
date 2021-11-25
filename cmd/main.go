@@ -12,7 +12,11 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("postgres", "user=postgres password=12345 dbname=q_date sslmode=disable")
+	db, err := sql.Open("postgres", "host=postgres user=postgres password=12345 port=5432 dbname=postgres sslmode=disable")
+	if err != nil {
+		log.Fatal("Can't connect to db: ", err.Error())
+	}
+	err = db.Ping()
 	if err != nil {
 		log.Fatal("Can't connect to db: ", err.Error())
 	}
