@@ -1,8 +1,15 @@
 package web
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"path"
+	"time"
 
 	"github.com/ISS-Dating/service-main/service"
 )
@@ -28,6 +35,18 @@ func (s *Server) login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	token, err := createToken(user)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Value:   token,
+		Expires: time.Now().Add(time.Hour * 3),
+	})
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -51,6 +70,48 @@ func (s *Server) register(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// /get_photo endpoint
+func (s *Server) getPhoto(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
+
+	file, err := os.ReadFile(path.Join("static", user.Username+".png"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.Header().Add("Content-Type", "image/png")
+	w.Write(file)
+}
+
+// set_photo endpoint
+func (s *Server) setPhoto(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
+
+	photo, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	if len(photo) >= 1024*1024*10 {
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte("Photo is too big, 10Mb max"))
+		return
+	}
+
+	os.Remove(path.Join("static", user.Username+".png"))
+	os.WriteFile(path.Join("static", user.Username+".png"), photo, os.ModePerm)
+}
+
 // /update endpoint
 func (s *Server) update(w http.ResponseWriter, req *http.Request) {
 }
@@ -68,12 +129,22 @@ func (s *Server) chatList(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) Start() {
+	var err error
+	signKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal(err)
+	}
+	validateKey = &signKey.PublicKey
+
 	http.HandleFunc("/login", s.login)
 	http.HandleFunc("/register", s.register)
 	http.HandleFunc("/update", s.update)
 	http.HandleFunc("/stats", s.stats)
 	http.HandleFunc("/block", s.block)
 	http.HandleFunc("/chat_list", s.chatList)
+
+	http.HandleFunc("/set_photo", s.setPhoto)
+	http.HandleFunc("/get_photo", s.getPhoto)
 
 	http.ListenAndServe(":8090", nil)
 }

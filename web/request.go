@@ -1,5 +1,10 @@
 package web
 
+import (
+	"github.com/ISS-Dating/service-main/model"
+	"github.com/golang-jwt/jwt"
+)
+
 type LoginInfo struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -11,4 +16,10 @@ type ResponseError struct {
 }
 
 type ResgisterInfo struct {
+}
+
+type userClaims struct {
+	model.User
+	*jwt.StandardClaims
+	TokenType string
 }
