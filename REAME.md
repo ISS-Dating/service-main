@@ -5,3 +5,15 @@
 
 ### Accessing
 - `0.0.0.0:8090`
+
+### Functions
+- [x] Register
+- [x] Login
+- [ ] Update
+- [ ] Search (user)
+- [ ] Search (mod)
+- [ ] Ban
+- [ ] Mod
+- [ ] Meet
+- [ ] Report
+- [ ] Search report
