@@ -58,3 +58,11 @@ func auth(req *http.Request) (model.User, int) {
 
 	return user, http.StatusOK
 }
+
+func embedToken(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Value:   token,
+		Expires: time.Now().Add(time.Hour * 3),
+	})
+}

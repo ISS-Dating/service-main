@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"time"
 
 	"github.com/ISS-Dating/service-main/service"
 )
@@ -42,11 +41,7 @@ func (s *Server) login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   token,
-		Expires: time.Now().Add(time.Hour * 3),
-	})
+	embedToken(w, token)
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -66,6 +61,14 @@ func (s *Server) register(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+
+	token, err := createToken(user)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	embedToken(w, token)
 
 	json.NewEncoder(w).Encode(user)
 }
@@ -129,7 +132,11 @@ func (s *Server) chatList(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) Start() {
-	var err error
+	err := os.MkdirAll("static", os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	signKey, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		log.Fatal(err)

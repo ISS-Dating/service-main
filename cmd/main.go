@@ -17,7 +17,6 @@ func main() {
 		log.Fatal("Can't connect to db: ", err.Error())
 	}
 
-	go web.StartStaticServer()
 	server := web.NewServer(service.NewService(repo.NewRepo(db)))
 	server.Start()
 }
