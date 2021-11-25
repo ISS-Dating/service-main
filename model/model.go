@@ -7,7 +7,7 @@ const (
 )
 
 type User struct {
-	ID          uint64      `json:"id"`
+	ID          int64       `json:"id"`
 	PhotoURL    string      `json:"photo_url"`
 	Name        string      `json:"name"`
 	Surname     string      `json:"surname"`
@@ -30,14 +30,18 @@ type User struct {
 }
 
 type Stats struct {
-	BannedBefore      bool `json:"banned_before"`
-	UsersMet          uint `json:"users_met"`
-	MessagesSent      uint `json:"messages_sent"`
-	AverageMessageLen uint `json:"average_message_length"`
-	LinksInMessages   uint `json:"links_in_messages"`
+	ID                int64 `json:"id"`
+	UserID            int64 `json:"user_id"`
+	BannedBefore      bool  `json:"banned_before"`
+	UsersMet          uint  `json:"users_met"`
+	MessagesSent      uint  `json:"messages_sent"`
+	AverageMessageLen uint  `json:"average_message_length"`
+	LinksInMessages   uint  `json:"links_in_messages"`
 }
 
 type Questionary struct {
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
 	Work      string `json:"work_question"`
 	Food      string `json:"food_question"`
 	Travel    string `json:"travel_question"`
@@ -46,6 +50,7 @@ type Questionary struct {
 }
 
 type Acquaintance struct {
-	UserAUsername uint64 `json:"user_a"`
-	UserBUsername uint64 `json:"user_b"`
+	ID            int64 `json:"id"`
+	UserAUsername int64 `json:"user_a"`
+	UserBUsername int64 `json:"user_b"`
 }

@@ -15,10 +15,10 @@ var (
 		"role",
 	}
 	questionFields = []string{
-		"work", "food", "travel", "bio", "main",
+		"id", "work", "food", "travel", "bio", "main", "user_id",
 	}
 	statsFields = []string{
-		"banned_before", "users_met", "messages_sent", "average_message_length", "links_in_messages",
+		"id", "banned_before", "users_met", "messages_sent", "average_message_length", "links_in_messages", "user_id",
 	}
 )
 
@@ -44,36 +44,46 @@ func (r *Repository) CreateUser(user model.User) (model.User, error) {
 
 	res, err := tx.Exec("INSERT INTO user("+strings.Join(userFields[1:], ", s")+") VALUES ("+
 		generatePlaceholders(len(userFields[1:]))+")",
-		getReadOnlyFields(user)[1:]...)
+		getReadUserFields(user)[1:]...)
 
 	if err != nil {
 		tx.Rollback()
 		return model.User{}, ErrorUsernameDuplication
 	}
-
 	id, err := res.LastInsertId()
+	user.ID = id
 	if err != nil {
 		tx.Rollback()
 		return model.User{}, err
 	}
 
-	_, err = tx.Exec("INSERT INTO question(user_id) VALUES ($1)",
-		id)
+	user.Questionary.UserID = user.ID
+	_, err = tx.Exec("INSERT INTO question("+strings.Join(questionFields[1:], ", ")+")VALUES ("+
+		generatePlaceholders(len(questionFields[1:]))+")",
+		getReadQuestionFields(user.Questionary)[1:]...)
+	if err != nil {
+		tx.Rollback()
+		return model.User{}, err
+	}
+	id, err = res.LastInsertId()
+	user.Questionary.ID = id
 	if err != nil {
 		tx.Rollback()
 		return model.User{}, err
 	}
 
-	_, err = tx.Exec("INSERT INTO stat(user_id) VALUES ($1)",
-		id)
+	user.Stats.UserID = user.ID
+	_, err = tx.Exec("INSERT INTO stats("+strings.Join(statsFields[1:], ", ")+")VALUES ("+
+		generatePlaceholders(len(statsFields[1:]))+")",
+		getReadStatsFields(user.Stats)[1:]...)
 	if err != nil {
 		tx.Rollback()
 		return model.User{}, err
 	}
-
-	row := tx.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM user WHERE username=$1 AND password=$2",
-		user.Username, user.Password)
-	if err := row.Scan(getModifyFields(&user)...); err != nil {
+	id, err = res.LastInsertId()
+	user.Stats.ID = id
+	if err != nil {
+		tx.Rollback()
 		return model.User{}, err
 	}
 
@@ -81,47 +91,41 @@ func (r *Repository) CreateUser(user model.User) (model.User, error) {
 	return user, nil
 }
 
-func (r *Repository) ReadUserByLogin(username, password string) (*model.User, error) {
-	data := &model.User{}
+func (r *Repository) ReadUserByLogin(username, password string) (model.User, error) {
+	var user model.User
 
 	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return model.User{}, err
 	}
 
-	res := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM user WHERE username=$1 AND password=$2",
+	row := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM user WHERE username=$1 AND password=$2",
 		username, password)
-	err = res.Scan(&data.ID, &data.PhotoURL, &data.Name, &data.Surname, &data.Username,
-		&data.Password, &data.Email, &data.Gender, &data.City, &data.Country, &data.Age,
-		&data.Description, &data.LookingFor, &data.Status, &data.Education, &data.Education,
-		&data.Mood, &data.Banned, &data.Role)
-	if err != nil {
-		tx.Rollback()
-		return nil, ErrorUserNotExist
+	if err := row.Scan(getModifyUserFields(&user)...); err != nil {
+		return model.User{}, err
 	}
 
-	data.Stats, err = readStats(tx, data.ID)
+	user.Stats, err = readStats(tx, user.ID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
 	}
 
-	data.Questionary, err = readQuestions(tx, data.ID)
+	user.Questionary, err = readQuestions(tx, user.ID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
 	}
 
 	tx.Commit()
-	return data, nil
+	return user, nil
 }
 
-func readQuestions(tx *sql.Tx, id uint64) (model.Questionary, error) {
+func readQuestions(tx *sql.Tx, id int64) (model.Questionary, error) {
 	var q model.Questionary
 	res := tx.QueryRow("SELECT "+strings.Join(questionFields, ", ")+" FROM question WHERE user_id=$1",
 		id)
-	err := res.Scan(&q.Work, &q.Food, &q.Travel,
-		&q.Biography, &q.Main)
+	err := res.Scan(getModifyQuestionFields(&q)...)
 	if err != nil {
 		return q, err
 	}
@@ -129,12 +133,11 @@ func readQuestions(tx *sql.Tx, id uint64) (model.Questionary, error) {
 	return q, nil
 }
 
-func readStats(tx *sql.Tx, id uint64) (model.Stats, error) {
+func readStats(tx *sql.Tx, id int64) (model.Stats, error) {
 	var s model.Stats
 	res := tx.QueryRow("SELECT "+strings.Join(statsFields, ", ")+" FROM stat WHERE user_id=$1",
 		id)
-	err := res.Scan(&s.BannedBefore, &s.UsersMet, &s.MessagesSent,
-		&s.AverageMessageLen, &s.LinksInMessages)
+	err := res.Scan(getModifyStatsFields(&s)...)
 	if err != nil {
 		return s, err
 	}
@@ -142,41 +145,41 @@ func readStats(tx *sql.Tx, id uint64) (model.Stats, error) {
 	return s, nil
 }
 
-func updateStats(tx *sql.Tx, id uint64, stats *model.Stats) error {
-	toEdit, last := psqlJoin(statsFields, 1)
-	_, err := tx.Exec("UPDATE stat SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
-		stats.BannedBefore, stats.UsersMet, stats.MessagesSent, stats.AverageMessageLen, stats.LinksInMessages, id)
-	if err != nil {
-		return err
-	}
+// func updateStats(tx *sql.Tx, id int64, stats *model.Stats) error {
+// 	toEdit, last := psqlJoin(statsFields, 1)
+// 	_, err := tx.Exec("UPDATE stat SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
+// 		stats.BannedBefore, stats.UsersMet, stats.MessagesSent, stats.AverageMessageLen, stats.LinksInMessages, id)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func updateQuestions(tx *sql.Tx, id uint64, questions *model.Questionary) error {
-	toEdit, last := psqlJoin(questionFields, 1)
-	_, err := tx.Exec("UPDATE stat SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
-		questions.Work, questions.Food, questions.Travel, questions.Biography, questions.Main, id)
-	if err != nil {
-		return err
-	}
+// func updateQuestions(tx *sql.Tx, id uint64, questions *model.Questionary) error {
+// 	toEdit, last := psqlJoin(questionFields, 1)
+// 	_, err := tx.Exec("UPDATE stat SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
+// 		questions.Work, questions.Food, questions.Travel, questions.Biography, questions.Main, id)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func updateUser(tx *sql.Tx, id uint64, user *model.User) error {
-	toEdit, last := psqlJoin(userFields, 1)
-	_, err := tx.Exec("UPDATE user SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
-		user.ID, user.PhotoURL, user.Name, user.Surname, user.Username,
-		user.Password, user.Email, user.Gender, user.City, user.Country, user.Age,
-		user.Description, user.LookingFor, user.Status, user.Education, user.Education,
-		user.Mood, user.Banned, user.Role, id)
-	if err != nil {
-		return err
-	}
+// func updateUser(tx *sql.Tx, id uint64, user *model.User) error {
+// 	toEdit, last := psqlJoin(userFields, 1)
+// 	_, err := tx.Exec("UPDATE user SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
+// 		user.ID, user.PhotoURL, user.Name, user.Surname, user.Username,
+// 		user.Password, user.Email, user.Gender, user.City, user.Country, user.Age,
+// 		user.Description, user.LookingFor, user.Status, user.Education, user.Education,
+// 		user.Mood, user.Banned, user.Role, id)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func (r *Repository) ReadUserByUsername(username string) (*model.User, error) {
 	data := &model.User{}
@@ -213,30 +216,30 @@ func (r *Repository) ReadUserByUsername(username string) (*model.User, error) {
 	return data, nil
 }
 
-func (r *Repository) UpdateUser(user *model.User) (*model.User, error) {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return nil, err
-	}
+// func (r *Repository) UpdateUser(user *model.User) (*model.User, error) {
+// 	tx, err := r.db.Begin()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if err := updateUser(tx, user.ID, user); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
+// 	if err := updateUser(tx, user.ID, user); err != nil {
+// 		tx.Rollback()
+// 		return nil, err
+// 	}
 
-	if err := updateStats(tx, user.ID, &user.Stats); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
+// 	if err := updateStats(tx, user.ID, &user.Stats); err != nil {
+// 		tx.Rollback()
+// 		return nil, err
+// 	}
 
-	if err := updateQuestions(tx, user.ID, &user.Questionary); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
+// 	if err := updateQuestions(tx, user.ID, &user.Questionary); err != nil {
+// 		tx.Rollback()
+// 		return nil, err
+// 	}
 
-	tx.Commit()
-	return user, nil
-}
+// 	tx.Commit()
+// 	return user, nil
+// }
 
 func (r *Repository) CreateAcquaintance(userA, userB string) error {
 	tx, err := r.db.Begin()
@@ -282,7 +285,7 @@ func (r *Repository) GetAcquaintanceByUsername(username string) ([]model.Acquain
 	return acc, nil
 }
 
-func psqlJoin(arr []string, start int) (string, int) {
+func generateEqualsPlaceholder(arr []string, start int) (string, int) {
 	b := strings.Builder{}
 	for _, s := range arr {
 		b.WriteString(s)
@@ -304,7 +307,7 @@ func generatePlaceholders(n int) string {
 	return strings.Join(placeholders, ", ")
 }
 
-func getReadOnlyFields(user model.User) []interface{} {
+func getReadUserFields(user model.User) []interface{} {
 	var fields []interface{}
 	fields = append(fields,
 		user.ID,
@@ -329,7 +332,7 @@ func getReadOnlyFields(user model.User) []interface{} {
 	return fields
 }
 
-func getModifyFields(user *model.User) []interface{} {
+func getModifyUserFields(user *model.User) []interface{} {
 	var fields []interface{}
 	fields = append(fields,
 		&user.ID,
@@ -349,6 +352,66 @@ func getModifyFields(user *model.User) []interface{} {
 		&user.Mood,
 		&user.Banned,
 		&user.Role,
+	)
+
+	return fields
+}
+
+func getReadStatsFields(stats model.Stats) []interface{} {
+	var fields []interface{}
+	fields = append(fields,
+		stats.ID,
+		stats.BannedBefore,
+		stats.UsersMet,
+		stats.MessagesSent,
+		stats.AverageMessageLen,
+		stats.LinksInMessages,
+		stats.UserID,
+	)
+
+	return fields
+}
+
+func getModifyStatsFields(stats *model.Stats) []interface{} {
+	var fields []interface{}
+	fields = append(fields,
+		&stats.ID,
+		&stats.BannedBefore,
+		&stats.UsersMet,
+		&stats.MessagesSent,
+		&stats.AverageMessageLen,
+		&stats.LinksInMessages,
+		&stats.UserID,
+	)
+
+	return fields
+}
+
+func getReadQuestionFields(question model.Questionary) []interface{} {
+	var fields []interface{}
+	fields = append(fields,
+		question.ID,
+		question.Work,
+		question.Food,
+		question.Travel,
+		question.Biography,
+		question.Main,
+		question.UserID,
+	)
+
+	return fields
+}
+
+func getModifyQuestionFields(question *model.Questionary) []interface{} {
+	var fields []interface{}
+	fields = append(fields,
+		&question.ID,
+		&question.Work,
+		&question.Food,
+		&question.Travel,
+		&question.Biography,
+		&question.Main,
+		&question.UserID,
 	)
 
 	return fields
