@@ -10,7 +10,7 @@ import (
 
 var (
 	userFields = []string{
-		"id", "photo_url", "name", "surname", "username", "password", "email", "gender", "ciry",
+		"id", "photo_url", "name", "surname", "username", "password", "email", "gender", "city",
 		"country", "age", "description", "looking_for", "status", "education", "mood", "banned",
 		"role",
 	}
@@ -22,58 +22,66 @@ var (
 	}
 )
 
-type RepoImpl struct {
+type Repository struct {
 	db *sql.DB
 }
 
-func NewRepoImpl(db *sql.DB) *RepoImpl {
-	return &RepoImpl{
+func NewRepoImpl(db *sql.DB) *Repository {
+	return &Repository{
 		db: db,
 	}
 }
 
-func (r *RepoImpl) CreateUser(email, username, password string) (*model.User, error) {
-	data := &model.User{}
+func (r *Repository) CreateUser(user model.User) (model.User, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return model.User{}, err
 	}
 
-	res, err := tx.Exec("INSERT INTO user(email, username, password) VALUES ($1, $2, $3)",
-		email, username, password)
+	if user.Role == "" {
+		user.Role = model.RoleUser
+	}
+
+	res, err := tx.Exec("INSERT INTO user("+strings.Join(userFields[1:], ", s")+") VALUES ("+
+		generatePlaceholders(len(userFields[1:]))+")",
+		getReadOnlyFields(user)[1:]...)
 
 	if err != nil {
 		tx.Rollback()
-		return nil, ErrorUsernameDuplication
+		return model.User{}, ErrorUsernameDuplication
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
 	}
-
-	data.ID = uint64(id)
 
 	_, err = tx.Exec("INSERT INTO question(user_id) VALUES ($1)",
 		id)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
 	}
 
 	_, err = tx.Exec("INSERT INTO stat(user_id) VALUES ($1)",
 		id)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
+	}
+
+	row := tx.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM user WHERE username=$1 AND password=$2",
+		user.Username, user.Password)
+	if err := row.Scan(getModifyFields(&user)...); err != nil {
+		return model.User{}, err
 	}
 
 	tx.Commit()
-	return data, nil
+	return user, nil
 }
 
-func (r *RepoImpl) ReadUserByLogin(username, password string) (*model.User, error) {
+func (r *Repository) ReadUserByLogin(username, password string) (*model.User, error) {
 	data := &model.User{}
 
 	tx, err := r.db.Begin()
@@ -170,7 +178,7 @@ func updateUser(tx *sql.Tx, id uint64, user *model.User) error {
 	return nil
 }
 
-func (r *RepoImpl) ReadUserByUsername(username string) (*model.User, error) {
+func (r *Repository) ReadUserByUsername(username string) (*model.User, error) {
 	data := &model.User{}
 
 	tx, err := r.db.Begin()
@@ -205,7 +213,7 @@ func (r *RepoImpl) ReadUserByUsername(username string) (*model.User, error) {
 	return data, nil
 }
 
-func (r *RepoImpl) UpdateUser(user *model.User) (*model.User, error) {
+func (r *Repository) UpdateUser(user *model.User) (*model.User, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -230,7 +238,7 @@ func (r *RepoImpl) UpdateUser(user *model.User) (*model.User, error) {
 	return user, nil
 }
 
-func (r *RepoImpl) CreateAcquaintance(userA, userB string) error {
+func (r *Repository) CreateAcquaintance(userA, userB string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -246,7 +254,7 @@ func (r *RepoImpl) CreateAcquaintance(userA, userB string) error {
 	return nil
 }
 
-func (r *RepoImpl) GetAcquaintanceByUsername(username string) ([]model.Acquaintance, error) {
+func (r *Repository) GetAcquaintanceByUsername(username string) ([]model.Acquaintance, error) {
 	var acc []model.Acquaintance
 
 	tx, err := r.db.Begin()
@@ -285,4 +293,63 @@ func psqlJoin(arr []string, start int) (string, int) {
 	}
 	res := b.String()
 	return strings.TrimSuffix(res, ", "), start
+}
+
+func generatePlaceholders(n int) string {
+	var placeholders []string
+	for i := 0; i < n; i++ {
+		placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
+	}
+
+	return strings.Join(placeholders, ", ")
+}
+
+func getReadOnlyFields(user model.User) []interface{} {
+	var fields []interface{}
+	fields = append(fields,
+		user.ID,
+		user.PhotoURL,
+		user.Name,
+		user.Surname,
+		user.Password,
+		user.Email,
+		user.Gender,
+		user.City,
+		user.Country,
+		user.Age,
+		user.Description,
+		user.LookingFor,
+		user.Status,
+		user.Education,
+		user.Mood,
+		user.Banned,
+		user.Role,
+	)
+
+	return fields
+}
+
+func getModifyFields(user *model.User) []interface{} {
+	var fields []interface{}
+	fields = append(fields,
+		&user.ID,
+		&user.PhotoURL,
+		&user.Name,
+		&user.Surname,
+		&user.Password,
+		&user.Email,
+		&user.Gender,
+		&user.City,
+		&user.Country,
+		&user.Age,
+		&user.Description,
+		&user.LookingFor,
+		&user.Status,
+		&user.Education,
+		&user.Mood,
+		&user.Banned,
+		&user.Role,
+	)
+
+	return fields
 }
