@@ -1,8 +1,22 @@
 package main
 
-import "github.com/ISS-Dating/service-main/web"
+import (
+	"database/sql"
+	"log"
+
+	_ "github.com/lib/pq"
+
+	"github.com/ISS-Dating/service-main/repo"
+	"github.com/ISS-Dating/service-main/service"
+	"github.com/ISS-Dating/service-main/web"
+)
 
 func main() {
-	server := web.NewServer()
+	db, err := sql.Open("postgres", "user=postgres password=12345 dbname=q_date sslmode=disable")
+	if err != nil {
+		log.Fatal("Can't connect to db: ", err.Error())
+	}
+
+	server := web.NewServer(service.NewService(repo.NewRepo(db)))
 	server.Start()
 }

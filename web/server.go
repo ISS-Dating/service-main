@@ -78,6 +78,8 @@ func (s *Server) Start() {
 	http.ListenAndServe(":8090", nil)
 }
 
-func NewServer() *Server {
-	return &Server{}
+func NewServer(service service.Interface) *Server {
+	return &Server{
+		Service: service,
+	}
 }

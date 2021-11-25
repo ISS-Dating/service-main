@@ -9,12 +9,14 @@ type Service struct {
 	Repo repo.Interface
 }
 
-func NewService() *Service {
-	return &Service{}
+func NewService(repo repo.Interface) *Service {
+	return &Service{
+		Repo: repo,
+	}
 }
 
 func (s *Service) Login(username, password string) (model.User, error) {
-	return model.User{}, nil
+	return s.Repo.ReadUserByLogin(username, password)
 }
 
 func (s *Service) Register(username, password, email string) (model.User, error) {

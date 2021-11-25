@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 const (
 	RoleUser          = "user"
 	RoleModerator     = "moderator"
@@ -7,26 +9,28 @@ const (
 )
 
 type User struct {
-	ID          int64       `json:"id"`
-	PhotoURL    string      `json:"photo_url"`
-	Name        string      `json:"name"`
-	Surname     string      `json:"surname"`
-	Username    string      `json:"username"`
-	Password    string      `json:"password"`
-	Email       string      `json:"email"`
-	Gender      string      `json:"gender"`
-	City        string      `json:"city"`
-	Country     string      `json:"country"`
-	Age         uint        `json:"age"`
-	Description string      `json:"description"`
-	LookingFor  string      `json:"looking_for"`
-	Status      string      `json:"status"`
-	Education   string      `json:"education"`
-	Mood        string      `json:"mood"`
-	Banned      bool        `json:"banned"`
-	Role        string      `json:"role"`
-	Stats       Stats       `json:"stats"`
-	Questionary Questionary `json:"questions"`
+	ID               int64       `json:"id"`
+	PhotoURL         string      `json:"photo_url"`
+	Name             string      `json:"name"`
+	Surname          string      `json:"surname"`
+	Username         string      `json:"username"`
+	Password         string      `json:"password"`
+	Email            string      `json:"email"`
+	Gender           string      `json:"gender"`
+	City             string      `json:"city"`
+	Country          string      `json:"country"`
+	Age              uint        `json:"age"`
+	Description      string      `json:"description"`
+	LookingFor       string      `json:"looking_for"`
+	Status           string      `json:"status"`
+	Education        string      `json:"education"`
+	Mood             string      `json:"mood"`
+	Banned           bool        `json:"banned"`
+	Role             string      `json:"role"`
+	Stats            Stats       `json:"stats"`
+	Questionary      Questionary `json:"questions"`
+	RegistrationDate time.Time   `json:"registration_date"`
+	Links            []string    `json:"links"`
 }
 
 type Stats struct {

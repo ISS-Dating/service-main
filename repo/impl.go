@@ -2,17 +2,21 @@ package repo
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ISS-Dating/service-main/model"
+	"github.com/lib/pq"
 )
 
 var (
 	userFields = []string{
 		"id", "photo_url", "name", "surname", "username", "password", "email", "gender", "city",
 		"country", "age", "description", "looking_for", "status", "education", "mood", "banned",
-		"role",
+		"role", "registration_date", "links",
 	}
 	questionFields = []string{
 		"id", "work", "food", "travel", "bio", "main", "user_id",
@@ -26,7 +30,7 @@ type Repository struct {
 	db *sql.DB
 }
 
-func NewRepoImpl(db *sql.DB) *Repository {
+func NewRepo(db *sql.DB) *Repository {
 	return &Repository{
 		db: db,
 	}
@@ -41,47 +45,33 @@ func (r *Repository) CreateUser(user model.User) (model.User, error) {
 	if user.Role == "" {
 		user.Role = model.RoleUser
 	}
-
-	res, err := tx.Exec("INSERT INTO user("+strings.Join(userFields[1:], ", s")+") VALUES ("+
-		generatePlaceholders(len(userFields[1:]))+")",
-		getReadUserFields(user)[1:]...)
-
-	if err != nil {
-		tx.Rollback()
-		return model.User{}, ErrorUsernameDuplication
+	if user.Links == nil {
+		user.Links = make([]string, 0)
 	}
-	id, err := res.LastInsertId()
-	user.ID = id
+	user.RegistrationDate = time.Now()
+
+	err = tx.QueryRow("INSERT INTO \"user\" ("+strings.Join(userFields[1:], ", ")+") VALUES ("+
+		generatePlaceholders(len(userFields[1:]))+") RETURNING id",
+		getReadUserFields(user)[1:]...).Scan(&user.ID)
+
 	if err != nil {
 		tx.Rollback()
-		return model.User{}, err
+		return model.User{}, fmt.Errorf("%s, %w", err.Error(), ErrorUsernameDuplication)
 	}
 
 	user.Questionary.UserID = user.ID
-	_, err = tx.Exec("INSERT INTO question("+strings.Join(questionFields[1:], ", ")+")VALUES ("+
-		generatePlaceholders(len(questionFields[1:]))+")",
-		getReadQuestionFields(user.Questionary)[1:]...)
-	if err != nil {
-		tx.Rollback()
-		return model.User{}, err
-	}
-	id, err = res.LastInsertId()
-	user.Questionary.ID = id
+	err = tx.QueryRow("INSERT INTO questionary("+strings.Join(questionFields[1:], ", ")+") VALUES ("+
+		generatePlaceholders(len(questionFields[1:]))+") RETURNING id",
+		getReadQuestionFields(user.Questionary)[1:]...).Scan(&user.Questionary.ID)
 	if err != nil {
 		tx.Rollback()
 		return model.User{}, err
 	}
 
 	user.Stats.UserID = user.ID
-	_, err = tx.Exec("INSERT INTO stats("+strings.Join(statsFields[1:], ", ")+")VALUES ("+
-		generatePlaceholders(len(statsFields[1:]))+")",
-		getReadStatsFields(user.Stats)[1:]...)
-	if err != nil {
-		tx.Rollback()
-		return model.User{}, err
-	}
-	id, err = res.LastInsertId()
-	user.Stats.ID = id
+	err = tx.QueryRow("INSERT INTO stats("+strings.Join(statsFields[1:], ", ")+") VALUES ("+
+		generatePlaceholders(len(statsFields[1:]))+") RETURNING id",
+		getReadStatsFields(user.Stats)[1:]...).Scan(&user.Stats.ID)
 	if err != nil {
 		tx.Rollback()
 		return model.User{}, err
@@ -99,9 +89,12 @@ func (r *Repository) ReadUserByLogin(username, password string) (model.User, err
 		return model.User{}, err
 	}
 
-	row := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM user WHERE username=$1 AND password=$2",
+	row := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM \"user\" WHERE username=$1 AND password=$2",
 		username, password)
 	if err := row.Scan(getModifyUserFields(&user)...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.User{}, ErrorUserNotExist
+		}
 		return model.User{}, err
 	}
 
@@ -123,7 +116,7 @@ func (r *Repository) ReadUserByLogin(username, password string) (model.User, err
 
 func readQuestions(tx *sql.Tx, id int64) (model.Questionary, error) {
 	var q model.Questionary
-	res := tx.QueryRow("SELECT "+strings.Join(questionFields, ", ")+" FROM question WHERE user_id=$1",
+	res := tx.QueryRow("SELECT "+strings.Join(questionFields, ", ")+" FROM questionary WHERE user_id=$1",
 		id)
 	err := res.Scan(getModifyQuestionFields(&q)...)
 	if err != nil {
@@ -135,7 +128,7 @@ func readQuestions(tx *sql.Tx, id int64) (model.Questionary, error) {
 
 func readStats(tx *sql.Tx, id int64) (model.Stats, error) {
 	var s model.Stats
-	res := tx.QueryRow("SELECT "+strings.Join(statsFields, ", ")+" FROM stat WHERE user_id=$1",
+	res := tx.QueryRow("SELECT "+strings.Join(statsFields, ", ")+" FROM stats WHERE user_id=$1",
 		id)
 	err := res.Scan(getModifyStatsFields(&s)...)
 	if err != nil {
@@ -189,7 +182,7 @@ func (r *Repository) ReadUserByUsername(username string) (*model.User, error) {
 		return nil, err
 	}
 
-	res := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+"FROM user WHERE username=$1",
+	res := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+"FROM \"user\" WHERE username=$1",
 		username)
 	err = res.Scan(&data.ID, &data.PhotoURL, &data.Name, &data.Surname, &data.Username,
 		&data.Password, &data.Email, &data.Gender, &data.City, &data.Country, &data.Age,
@@ -314,6 +307,7 @@ func getReadUserFields(user model.User) []interface{} {
 		user.PhotoURL,
 		user.Name,
 		user.Surname,
+		user.Username,
 		user.Password,
 		user.Email,
 		user.Gender,
@@ -327,6 +321,8 @@ func getReadUserFields(user model.User) []interface{} {
 		user.Mood,
 		user.Banned,
 		user.Role,
+		user.RegistrationDate,
+		pq.Array(user.Links),
 	)
 
 	return fields
@@ -339,6 +335,7 @@ func getModifyUserFields(user *model.User) []interface{} {
 		&user.PhotoURL,
 		&user.Name,
 		&user.Surname,
+		&user.Username,
 		&user.Password,
 		&user.Email,
 		&user.Gender,
@@ -352,6 +349,8 @@ func getModifyUserFields(user *model.User) []interface{} {
 		&user.Mood,
 		&user.Banned,
 		&user.Role,
+		&user.RegistrationDate,
+		pq.Array(&user.Links),
 	)
 
 	return fields
