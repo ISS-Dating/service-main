@@ -4,8 +4,13 @@ services:
     image: postgres
     environment:
       - 'POSTGRES_PASSWORD=12345'
+      - 'POSTGRES_DB=postgres'
+      - 'POSTGRES_USER=postgres'
+      - 'PGDATA=/var/lib/postgresql/data/pgdata'
     ports:
-      - "5433:5432"
+      - 5433:5432
+    volumes:
+      - .:/var/lib/postgresql/data:z
   main:
     build: .
     depends_on:
@@ -13,4 +18,4 @@ services:
     networks:
       - default
     ports:
-      - "8090:8090"
+      - 8090:8090

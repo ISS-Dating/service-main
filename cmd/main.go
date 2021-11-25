@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+	time.Sleep(time.Second * 10)
 	db, err := sql.Open("postgres", "host=postgres user=postgres password=12345 port=5432 dbname=postgres sslmode=disable")
 	if err != nil {
 		log.Fatal("Can't connect to db: ", err.Error())
