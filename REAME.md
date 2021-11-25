@@ -9,7 +9,7 @@
 ### Functions
 - [x] Register
 - [x] Login
-- [ ] Update
+- [S] Update
 - [ ] Search (user)
 - [ ] Search (mod)
 - [ ] Ban

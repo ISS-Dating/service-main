@@ -13,8 +13,9 @@ import (
 )
 
 func main() {
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 	db, err := sql.Open("postgres", "host=postgres user=postgres password=12345 port=5432 dbname=postgres sslmode=disable")
+	// db, err := sql.Open("postgres", "host=localhost user=postgres password=12345 port=5432 dbname=q_date sslmode=disable")
 	if err != nil {
 		log.Fatal("Can't connect to db: ", err.Error())
 	}

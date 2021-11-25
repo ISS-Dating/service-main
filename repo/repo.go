@@ -14,8 +14,8 @@ var (
 type Interface interface {
 	CreateUser(user model.User) (model.User, error)
 	ReadUserByLogin(username, password string) (model.User, error)
+	UpdateUser(user model.User) (model.User, error)
 	// ReadUserByUsername(username string) (*model.User, error)
-	// UpdateUser(user *model.User) (*model.User, error)
 
 	// CreateAcquaintance(userA, userB string) error
 	// GetAcquaintanceByUsername(username string) ([]model.Acquaintance, error)

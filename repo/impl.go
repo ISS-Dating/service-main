@@ -89,7 +89,7 @@ func (r *Repository) ReadUserByLogin(username, password string) (model.User, err
 		return model.User{}, err
 	}
 
-	row := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM \"user\" WHERE username=$1 AND password=$2",
+	row := tx.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM \"user\" WHERE username=$1 AND password=$2",
 		username, password)
 	if err := row.Scan(getModifyUserFields(&user)...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -138,27 +138,64 @@ func readStats(tx *sql.Tx, id int64) (model.Stats, error) {
 	return s, nil
 }
 
-// func updateStats(tx *sql.Tx, id int64, stats *model.Stats) error {
-// 	toEdit, last := psqlJoin(statsFields, 1)
-// 	_, err := tx.Exec("UPDATE stat SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
-// 		stats.BannedBefore, stats.UsersMet, stats.MessagesSent, stats.AverageMessageLen, stats.LinksInMessages, id)
-// 	if err != nil {
-// 		return err
-// 	}
+func (r *Repository) UpdateUser(user model.User) (model.User, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return model.User{}, err
+	}
 
-// 	return nil
-// }
+	var list []interface{}
+	list = append(list, user.ID)
+	list = append(list, getReadUserFields(user)[1:]...)
+	_, err = tx.Exec("UPDATE \"user\" SET "+generateEqualsPlaceholder(userFields[1:], 2)+" WHERE id=$1",
+		list...)
 
-// func updateQuestions(tx *sql.Tx, id uint64, questions *model.Questionary) error {
-// 	toEdit, last := psqlJoin(questionFields, 1)
-// 	_, err := tx.Exec("UPDATE stat SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
-// 		questions.Work, questions.Food, questions.Travel, questions.Biography, questions.Main, id)
-// 	if err != nil {
-// 		return err
-// 	}
+	if err != nil {
+		tx.Rollback()
+		return model.User{}, err
+	}
 
-// 	return nil
-// }
+	user.Stats, err = updateStats(tx, user.Stats)
+	if err != nil {
+		tx.Rollback()
+		return model.User{}, err
+	}
+
+	user.Questionary, err = updateQuestions(tx, user.Questionary)
+	if err != nil {
+		tx.Rollback()
+		return model.User{}, err
+	}
+
+	tx.Commit()
+	return user, nil
+}
+
+func updateStats(tx *sql.Tx, stats model.Stats) (model.Stats, error) {
+	var list []interface{}
+	list = append(list, stats.UserID)
+	list = append(list, getReadStatsFields(stats)[1:]...)
+	_, err := tx.Exec("UPDATE stats SET "+generateEqualsPlaceholder(statsFields[1:], 2)+" WHERE user_id=$1",
+		list...)
+	if err != nil {
+		return model.Stats{}, err
+	}
+
+	return stats, nil
+}
+
+func updateQuestions(tx *sql.Tx, questions model.Questionary) (model.Questionary, error) {
+	var list []interface{}
+	list = append(list, questions.UserID)
+	list = append(list, getReadQuestionFields(questions)[1:]...)
+	_, err := tx.Exec("UPDATE questionary SET "+generateEqualsPlaceholder(questionFields[1:], 2)+" WHERE user_id=$1",
+		list...)
+	if err != nil {
+		return model.Questionary{}, err
+	}
+
+	return questions, nil
+}
 
 // func updateUser(tx *sql.Tx, id uint64, user *model.User) error {
 // 	toEdit, last := psqlJoin(userFields, 1)
@@ -278,17 +315,13 @@ func (r *Repository) GetAcquaintanceByUsername(username string) ([]model.Acquain
 	return acc, nil
 }
 
-func generateEqualsPlaceholder(arr []string, start int) (string, int) {
-	b := strings.Builder{}
-	for _, s := range arr {
-		b.WriteString(s)
-		b.WriteString("=$")
-		b.WriteString(strconv.Itoa(start))
-		b.WriteString(", ")
-		start++
+func generateEqualsPlaceholder(arr []string, start int) string {
+	var placeholders []string
+	for i, field := range arr {
+		placeholders = append(placeholders, field+"=$"+strconv.Itoa(i+start))
 	}
-	res := b.String()
-	return strings.TrimSuffix(res, ", "), start
+
+	return strings.Join(placeholders, ", ")
 }
 
 func generatePlaceholders(n int) string {

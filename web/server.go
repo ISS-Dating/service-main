@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/ISS-Dating/service-main/model"
 	"github.com/ISS-Dating/service-main/service"
 )
 
@@ -117,6 +118,41 @@ func (s *Server) setPhoto(w http.ResponseWriter, req *http.Request) {
 
 // /update endpoint
 func (s *Server) update(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
+
+	var reqUser model.User
+	err := json.NewDecoder(req.Body).Decode(&reqUser)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	if reqUser.Username != user.Username {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	user, err = s.Service.UpdateUser(reqUser)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	token, err := createToken(user)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	embedToken(w, token)
+
+	json.NewEncoder(w).Encode(user)
 }
 
 // /stats endpoint

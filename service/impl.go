@@ -26,3 +26,7 @@ func (s *Service) Register(username, password, email string) (model.User, error)
 		Email:    email,
 	})
 }
+
+func (s *Service) UpdateUser(user model.User) (model.User, error) {
+	return s.Repo.UpdateUser(user)
+}
