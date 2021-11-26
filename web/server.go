@@ -136,6 +136,7 @@ func (s *Server) update(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	reqUser.Role = user.Role
 
 	user, err = s.Service.UpdateUser(reqUser)
 	if err != nil {
@@ -156,15 +157,37 @@ func (s *Server) update(w http.ResponseWriter, req *http.Request) {
 }
 
 // /stats endpoint
-func (s *Server) stats(w http.ResponseWriter, req *http.Request) {
-}
+func (s *Server) statsByUsername(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
 
-// /block endpoint
-func (s *Server) block(w http.ResponseWriter, req *http.Request) {
-}
+	var data LoginInfo
+	err := json.NewDecoder(req.Body).Decode(&data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-// /chat_list endpoint
-func (s *Server) chatList(w http.ResponseWriter, req *http.Request) {
+	if user.Role == model.RoleAdministrator || user.Role == model.RoleModerator {
+		searchUser, err := s.Service.GetUserByUsername(data.Username)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		err = json.NewEncoder(w).Encode(searchUser)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusForbidden)
 }
 
 func (s *Server) Start() {
@@ -182,9 +205,7 @@ func (s *Server) Start() {
 	http.HandleFunc("/login", s.login)
 	http.HandleFunc("/register", s.register)
 	http.HandleFunc("/update", s.update)
-	http.HandleFunc("/stats", s.stats)
-	http.HandleFunc("/block", s.block)
-	http.HandleFunc("/chat_list", s.chatList)
+	http.HandleFunc("/stats_username", s.statsByUsername)
 
 	http.HandleFunc("/set_photo", s.setPhoto)
 	http.HandleFunc("/get_photo", s.getPhoto)

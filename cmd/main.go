@@ -12,10 +12,19 @@ import (
 	"github.com/ISS-Dating/service-main/web"
 )
 
+var (
+	localSetup = true
+)
+
 func main() {
-	time.Sleep(time.Second * 5)
-	db, err := sql.Open("postgres", "host=postgres user=postgres password=12345 port=5432 dbname=postgres sslmode=disable")
-	// db, err := sql.Open("postgres", "host=localhost user=postgres password=12345 port=5432 dbname=q_date sslmode=disable")
+	var db *sql.DB
+	var err error
+	if localSetup {
+		db, err = sql.Open("postgres", "host=localhost user=postgres password=12345 port=5432 dbname=q_date sslmode=disable")
+	} else {
+		time.Sleep(time.Second * 5)
+		db, err = sql.Open("postgres", "host=postgres user=postgres password=12345 port=5432 dbname=postgres sslmode=disable")
+	}
 	if err != nil {
 		log.Fatal("Can't connect to db: ", err.Error())
 	}

@@ -9,9 +9,9 @@
 ### Functions
 - [x] Register
 - [x] Login
-- [S] Update
+- [x] Update
 - [ ] Search (user)
-- [ ] Search (mod)
+- [x] Search (mod)
 - [ ] Ban
 - [ ] Mod
 - [ ] Meet

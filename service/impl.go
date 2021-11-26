@@ -30,3 +30,7 @@ func (s *Service) Register(username, password, email string) (model.User, error)
 func (s *Service) UpdateUser(user model.User) (model.User, error) {
 	return s.Repo.UpdateUser(user)
 }
+
+func (s *Service) GetUserByUsername(username string) (model.User, error) {
+	return s.Repo.ReadUserByUsername(username)
+}

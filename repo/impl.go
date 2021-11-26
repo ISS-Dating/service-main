@@ -211,12 +211,12 @@ func updateQuestions(tx *sql.Tx, questions model.Questionary) (model.Questionary
 // 	return nil
 // }
 
-func (r *Repository) ReadUserByUsername(username string) (*model.User, error) {
-	data := &model.User{}
+func (r *Repository) ReadUserByUsername(username string) (model.User, error) {
+	var data model.User
 
 	tx, err := r.db.Begin()
 	if err != nil {
-		return nil, err
+		return model.User{}, err
 	}
 
 	res := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+"FROM \"user\" WHERE username=$1",
@@ -227,19 +227,19 @@ func (r *Repository) ReadUserByUsername(username string) (*model.User, error) {
 		&data.Mood, &data.Banned, &data.Role)
 	if err != nil {
 		tx.Rollback()
-		return nil, ErrorUserNotExist
+		return model.User{}, ErrorUserNotExist
 	}
 
 	data.Stats, err = readStats(tx, data.ID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
 	}
 
 	data.Questionary, err = readQuestions(tx, data.ID)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return model.User{}, err
 	}
 
 	tx.Commit()
@@ -447,4 +447,36 @@ func getModifyQuestionFields(question *model.Questionary) []interface{} {
 	)
 
 	return fields
+}
+
+func (r *Repository) ReadUserByNickname(username string) (model.User, error) {
+	var user model.User
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return model.User{}, err
+	}
+
+	row := tx.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM \"user\" WHERE username=$1", username)
+	if err := row.Scan(getModifyUserFields(&user)...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.User{}, ErrorUserNotExist
+		}
+		return model.User{}, err
+	}
+
+	user.Stats, err = readStats(tx, user.ID)
+	if err != nil {
+		tx.Rollback()
+		return model.User{}, err
+	}
+
+	user.Questionary, err = readQuestions(tx, user.ID)
+	if err != nil {
+		tx.Rollback()
+		return model.User{}, err
+	}
+
+	tx.Commit()
+	return user, nil
 }
