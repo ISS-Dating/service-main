@@ -10,10 +10,9 @@
 - [x] Register
 - [x] Login
 - [x] Update
-- [ ] Search (user)
 - [x] Search (mod)
-- [ ] Ban
-- [ ] Mod
+- [x] Ban
+- [x] Mod
 - [ ] Meet
 - [ ] Report
 - [ ] Search report

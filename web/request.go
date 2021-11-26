@@ -5,17 +5,12 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-type LoginInfo struct {
+type genericRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
-}
-
-type ResponseError struct {
-	Error string `json:"error"`
-}
-
-type ResgisterInfo struct {
+	Mod      bool   `json:"mod"`
+	Ban      bool   `json:"ban"`
 }
 
 type userClaims struct {

@@ -34,3 +34,41 @@ func (s *Service) UpdateUser(user model.User) (model.User, error) {
 func (s *Service) GetUserByUsername(username string) (model.User, error) {
 	return s.Repo.ReadUserByUsername(username)
 }
+
+func (s *Service) ModUser(author model.User, username string, value bool) error {
+	if author.Role != model.RoleAdministrator {
+		return ErrorForbidden
+	}
+
+	user, err := s.Repo.ReadUserByUsername(username)
+	if err != nil {
+		return err
+	}
+
+	if value {
+		user.Role = model.RoleModerator
+	} else {
+		user.Role = model.RoleUser
+	}
+
+	_, err = s.Repo.UpdateUser(user)
+
+	return err
+}
+
+func (s *Service) BanUser(author model.User, username string, value bool) error {
+	if author.Role != model.RoleAdministrator && author.Role != model.RoleModerator {
+		return ErrorForbidden
+	}
+
+	user, err := s.Repo.ReadUserByUsername(username)
+	if err != nil {
+		return err
+	}
+
+	user.Banned = value
+
+	_, err = s.Repo.UpdateUser(user)
+
+	return err
+}

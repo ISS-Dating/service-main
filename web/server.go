@@ -20,7 +20,7 @@ type Server struct {
 
 // /login endpoint
 func (s *Server) login(w http.ResponseWriter, req *http.Request) {
-	var login LoginInfo
+	var login genericRequest
 	err := json.NewDecoder(req.Body).Decode(&login)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -48,7 +48,7 @@ func (s *Server) login(w http.ResponseWriter, req *http.Request) {
 
 // /register endpoint
 func (s *Server) register(w http.ResponseWriter, req *http.Request) {
-	var login LoginInfo
+	var login genericRequest
 	err := json.NewDecoder(req.Body).Decode(&login)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -164,7 +164,7 @@ func (s *Server) statsByUsername(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var data LoginInfo
+	var data genericRequest
 	err := json.NewDecoder(req.Body).Decode(&data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -190,6 +190,52 @@ func (s *Server) statsByUsername(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusForbidden)
 }
 
+// /ban endpoint
+func (s *Server) ban(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
+
+	var data genericRequest
+	err := json.NewDecoder(req.Body).Decode(&data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = s.Service.BanUser(user, data.Username, data.Mod)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+}
+
+// /mod endpoint
+func (s *Server) mod(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
+
+	var data genericRequest
+	err := json.NewDecoder(req.Body).Decode(&data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = s.Service.ModUser(user, data.Username, data.Mod)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+}
+
 func (s *Server) Start() {
 	err := os.MkdirAll("static", os.ModePerm)
 	if err != nil {
@@ -206,6 +252,8 @@ func (s *Server) Start() {
 	http.HandleFunc("/register", s.register)
 	http.HandleFunc("/update", s.update)
 	http.HandleFunc("/stats_username", s.statsByUsername)
+	http.HandleFunc("/ban", s.ban)
+	http.HandleFunc("/mod", s.mod)
 
 	http.HandleFunc("/set_photo", s.setPhoto)
 	http.HandleFunc("/get_photo", s.getPhoto)
