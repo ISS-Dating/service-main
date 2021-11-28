@@ -20,6 +20,7 @@ type Server struct {
 
 // /login endpoint
 func (s *Server) login(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	var login genericRequest
 	err := json.NewDecoder(req.Body).Decode(&login)
 	if err != nil {
@@ -48,6 +49,7 @@ func (s *Server) login(w http.ResponseWriter, req *http.Request) {
 
 // /register endpoint
 func (s *Server) register(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	var login genericRequest
 	err := json.NewDecoder(req.Body).Decode(&login)
 	if err != nil {
@@ -76,6 +78,7 @@ func (s *Server) register(w http.ResponseWriter, req *http.Request) {
 
 // /get_photo endpoint
 func (s *Server) getPhoto(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	_, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -102,6 +105,7 @@ func (s *Server) getPhoto(w http.ResponseWriter, req *http.Request) {
 
 // set_photo endpoint
 func (s *Server) setPhoto(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -126,6 +130,7 @@ func (s *Server) setPhoto(w http.ResponseWriter, req *http.Request) {
 
 // /update endpoint
 func (s *Server) update(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -166,6 +171,7 @@ func (s *Server) update(w http.ResponseWriter, req *http.Request) {
 
 // /stats endpoint
 func (s *Server) statsByUsername(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -200,6 +206,7 @@ func (s *Server) statsByUsername(w http.ResponseWriter, req *http.Request) {
 
 // /ban endpoint
 func (s *Server) ban(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -223,6 +230,7 @@ func (s *Server) ban(w http.ResponseWriter, req *http.Request) {
 
 // /mod endpoint
 func (s *Server) mod(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -246,6 +254,7 @@ func (s *Server) mod(w http.ResponseWriter, req *http.Request) {
 
 // /friends endpoint
 func (s *Server) friends(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)

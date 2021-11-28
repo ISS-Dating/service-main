@@ -19,6 +19,7 @@ func NewMatcher(s service.Interface) *Matcher {
 }
 
 func (m *Matcher) match(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -31,6 +32,7 @@ func (m *Matcher) match(w http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Matcher) answer(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
@@ -47,6 +49,7 @@ func (m *Matcher) answer(w http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Matcher) status(w http.ResponseWriter, req *http.Request) {
+	enableCors(&w)
 	user, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
