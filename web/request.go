@@ -13,6 +13,10 @@ type genericRequest struct {
 	Ban      bool   `json:"ban"`
 }
 
+type Status struct {
+	Status string `json:"status"`
+}
+
 type userClaims struct {
 	model.User
 	*jwt.StandardClaims

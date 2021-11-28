@@ -13,6 +13,6 @@
 - [x] Search (mod)
 - [x] Ban
 - [x] Mod
-- [ ] Meet
+- [x] Meet
 - [ ] Report
 - [ ] Search report

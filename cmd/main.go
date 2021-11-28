@@ -33,6 +33,9 @@ func main() {
 		log.Fatal("Can't connect to db: ", err.Error())
 	}
 
-	server := web.NewServer(service.NewService(repo.NewRepo(db)))
+	service := service.NewService(repo.NewRepo(db))
+	server := web.NewServer(service)
+	matcher := web.NewMatcher(service)
+	go matcher.Start()
 	server.Start()
 }

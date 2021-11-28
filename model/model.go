@@ -58,3 +58,7 @@ type Acquaintance struct {
 	UserAUsername int64 `json:"user_a"`
 	UserBUsername int64 `json:"user_b"`
 }
+
+type Status struct {
+	Status bool `json:"status"`
+}
