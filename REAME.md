@@ -26,5 +26,6 @@
 - [x] Ban
 - [x] Mod
 - [x] Meet
+- [x] ListFriends
 - [ ] Report (TBD)
 - [ ] Search report (TBD)

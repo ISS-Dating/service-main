@@ -54,7 +54,7 @@ type Questionary struct {
 }
 
 type Acquaintance struct {
-	ID            int64 `json:"id"`
-	UserAUsername int64 `json:"user_a"`
-	UserBUsername int64 `json:"user_b"`
+	ID            int64  `json:"id"`
+	UserAUsername string `json:"user_a"`
+	UserBUsername string `json:"user_b"`
 }

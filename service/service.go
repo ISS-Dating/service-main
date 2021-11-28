@@ -17,4 +17,6 @@ type Interface interface {
 	GetUserByUsername(username string) (model.User, error)
 	ModUser(author model.User, username string, value bool) error
 	BanUser(author model.User, username string, value bool) error
+	MatchUsers(usernameA, usernameB string) error
+	ListFriends(username string) ([]string, error)
 }

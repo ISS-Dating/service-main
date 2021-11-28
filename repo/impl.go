@@ -197,20 +197,6 @@ func updateQuestions(tx *sql.Tx, questions model.Questionary) (model.Questionary
 	return questions, nil
 }
 
-// func updateUser(tx *sql.Tx, id uint64, user *model.User) error {
-// 	toEdit, last := psqlJoin(userFields, 1)
-// 	_, err := tx.Exec("UPDATE user SET "+toEdit+" WHERE user_id=$"+strconv.Itoa(last),
-// 		user.ID, user.PhotoURL, user.Name, user.Surname, user.Username,
-// 		user.Password, user.Email, user.Gender, user.City, user.Country, user.Age,
-// 		user.Description, user.LookingFor, user.Status, user.Education, user.Education,
-// 		user.Mood, user.Banned, user.Role, id)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 func (r *Repository) ReadUserByUsername(username string) (model.User, error) {
 	var data model.User
 
@@ -246,31 +232,6 @@ func (r *Repository) ReadUserByUsername(username string) (model.User, error) {
 	return data, nil
 }
 
-// func (r *Repository) UpdateUser(user *model.User) (*model.User, error) {
-// 	tx, err := r.db.Begin()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if err := updateUser(tx, user.ID, user); err != nil {
-// 		tx.Rollback()
-// 		return nil, err
-// 	}
-
-// 	if err := updateStats(tx, user.ID, &user.Stats); err != nil {
-// 		tx.Rollback()
-// 		return nil, err
-// 	}
-
-// 	if err := updateQuestions(tx, user.ID, &user.Questionary); err != nil {
-// 		tx.Rollback()
-// 		return nil, err
-// 	}
-
-// 	tx.Commit()
-// 	return user, nil
-// }
-
 func (r *Repository) CreateAcquaintance(userA, userB string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -287,7 +248,7 @@ func (r *Repository) CreateAcquaintance(userA, userB string) error {
 	return nil
 }
 
-func (r *Repository) GetAcquaintanceByUsername(username string) ([]model.Acquaintance, error) {
+func (r *Repository) ReadAcquaintanceByUsername(username string) ([]model.Acquaintance, error) {
 	var acc []model.Acquaintance
 
 	tx, err := r.db.Begin()
@@ -295,7 +256,7 @@ func (r *Repository) GetAcquaintanceByUsername(username string) ([]model.Acquain
 		return acc, nil
 	}
 
-	rows, err := tx.Query("SELECT user_a, user_b FROM acquaintance WHERE user_a=$1", username)
+	rows, err := tx.Query("SELECT id, user_a, user_b FROM acquaintance WHERE user_a=$1 OR user_b=$1", username)
 	if err != nil {
 		tx.Rollback()
 		return acc, err
@@ -304,7 +265,7 @@ func (r *Repository) GetAcquaintanceByUsername(username string) ([]model.Acquain
 	defer rows.Close()
 	for rows.Next() {
 		var a model.Acquaintance
-		if err := rows.Scan(&a.UserAUsername, &a.UserBUsername); err != nil {
+		if err := rows.Scan(&a.ID, &a.UserAUsername, &a.UserBUsername); err != nil {
 			tx.Rollback()
 			return acc, err
 		}

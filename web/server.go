@@ -76,13 +76,21 @@ func (s *Server) register(w http.ResponseWriter, req *http.Request) {
 
 // /get_photo endpoint
 func (s *Server) getPhoto(w http.ResponseWriter, req *http.Request) {
-	user, status := auth(req)
+	_, status := auth(req)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 		return
 	}
 
-	file, err := os.ReadFile(path.Join("static", user.Username+".png"))
+	var requestData genericRequest
+	err := json.NewDecoder(req.Body).Decode(&requestData)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	file, err := os.ReadFile(path.Join("static", requestData.Username+".png"))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -236,6 +244,28 @@ func (s *Server) mod(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// /friends endpoint
+func (s *Server) friends(w http.ResponseWriter, req *http.Request) {
+	user, status := auth(req)
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+		return
+	}
+
+	friends, err := s.Service.ListFriends(user.Username)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	matched := MatchedList{
+		Friends: friends,
+	}
+
+	json.NewEncoder(w).Encode(matched)
+}
+
 func (s *Server) Start() {
 	err := os.MkdirAll("static", os.ModePerm)
 	if err != nil {
@@ -257,6 +287,8 @@ func (s *Server) Start() {
 
 	http.HandleFunc("/set_photo", s.setPhoto)
 	http.HandleFunc("/get_photo", s.getPhoto)
+
+	http.HandleFunc("/friends", s.friends)
 
 	http.ListenAndServe(":8090", nil)
 }

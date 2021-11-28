@@ -72,3 +72,25 @@ func (s *Service) BanUser(author model.User, username string, value bool) error 
 
 	return err
 }
+
+func (s *Service) MatchUsers(usernameA, usernameB string) error {
+	return s.Repo.CreateAcquaintance(usernameA, usernameB)
+}
+
+func (s *Service) ListFriends(username string) ([]string, error) {
+	var list []string
+	friends, err := s.Repo.ReadAcquaintanceByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range friends {
+		if f.UserAUsername == username {
+			list = append(list, f.UserBUsername)
+		} else {
+			list = append(list, f.UserAUsername)
+		}
+	}
+
+	return list, nil
+}

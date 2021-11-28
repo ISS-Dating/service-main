@@ -130,4 +130,8 @@ func (t *Table) Poll() {
 
 	t.EntryA.StatusCallback <- statusB
 	t.EntryB.StatusCallback <- statusA
+
+	if statusA != nil && statusB != nil && statusA.Status && statusB.Status {
+		t.Service.MatchUsers(t.EntryA.User.Username, t.EntryB.User.Username)
+	}
 }

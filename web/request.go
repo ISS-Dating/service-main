@@ -14,7 +14,11 @@ type genericRequest struct {
 }
 
 type Status struct {
-	Status string `json:"status"`
+	Status bool `json:"status"`
+}
+
+type MatchedList struct {
+	Friends []string `json:"friends"`
 }
 
 type userClaims struct {
