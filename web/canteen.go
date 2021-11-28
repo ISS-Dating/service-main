@@ -14,8 +14,8 @@ type Entry struct {
 	Callback         chan *model.User
 	AnswerCallback   chan *model.Questionary
 	AnswerCallbackIn chan *model.Questionary
-	StatusCallback   chan *model.Status
-	StatusCallbackIn chan *model.Status
+	StatusCallback   chan *Status
+	StatusCallbackIn chan *Status
 }
 
 type Canteen struct {
@@ -55,16 +55,16 @@ func (c *Canteen) Poll() {
 			Callback:         make(chan *model.User),
 			AnswerCallback:   make(chan *model.Questionary),
 			AnswerCallbackIn: make(chan *model.Questionary),
-			StatusCallback:   make(chan *model.Status),
-			StatusCallbackIn: make(chan *model.Status),
+			StatusCallback:   make(chan *Status),
+			StatusCallbackIn: make(chan *Status),
 		}
 		entryB := &Entry{
 			User:             userB.User,
 			Callback:         make(chan *model.User),
 			AnswerCallback:   make(chan *model.Questionary),
 			AnswerCallbackIn: make(chan *model.Questionary),
-			StatusCallback:   make(chan *model.Status),
-			StatusCallbackIn: make(chan *model.Status),
+			StatusCallback:   make(chan *Status),
+			StatusCallbackIn: make(chan *Status),
 		}
 
 		userA.Callback <- userB.User
@@ -107,7 +107,7 @@ func (c *Canteen) GetAnswer(user *model.User, answers *model.Questionary) chan *
 	return entry.AnswerCallback
 }
 
-func (c *Canteen) GetStatus(user *model.User, status *model.Status) chan *model.Status {
+func (c *Canteen) GetStatus(user *model.User, status *Status) chan *Status {
 	entryRaw, ok := c.List.Load(user.ID)
 	if !ok {
 		return nil

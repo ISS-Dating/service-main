@@ -53,7 +53,7 @@ func (m *Matcher) status(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var stats model.Status
+	var stats Status
 	json.NewDecoder(req.Body).Decode(&stats)
 
 	callback := m.Canteen.GetStatus(&user, &stats)
