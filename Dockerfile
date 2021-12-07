@@ -4,7 +4,8 @@ RUN apk add git
 WORKDIR /server
 COPY . .
 
-RUN git submodule update --init --recursive
+ARG LOCAL_REPO
+RUN if [ "$LOCAL_REPO" = "off" ] ; then echo "build submodule" ; else RUN git submodule update --init --recursive ; fi
 
 RUN go mod download
 RUN go mod verify
