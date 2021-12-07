@@ -68,9 +68,9 @@ func (m *Matcher) status(w http.ResponseWriter, req *http.Request) {
 func (m *Matcher) Start() {
 	go m.Canteen.Poll()
 
-	http.HandleFunc("/match", m.match)
-	http.HandleFunc("/answer", m.answer)
-	http.HandleFunc("/status", m.status)
+	http.HandleFunc("/match/match", m.match)
+	http.HandleFunc("/match/answer", m.answer)
+	http.HandleFunc("/match/status", m.status)
 
 	http.ListenAndServe(":8091", nil)
 }
