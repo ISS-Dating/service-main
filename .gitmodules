@@ -1,0 +1,3 @@
+[submodule "connections"]
+	path = connections
+	url = https://github.com/ISS-Dating/connections
