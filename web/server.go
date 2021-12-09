@@ -12,6 +12,7 @@ import (
 
 	"github.com/ISS-Dating/service-main/model"
 	"github.com/ISS-Dating/service-main/service"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Server struct {
@@ -298,6 +299,8 @@ func (s *Server) Start() {
 	http.HandleFunc("/get_photo", s.getPhoto)
 
 	http.HandleFunc("/friends", s.friends)
+
+	http.Handle("/metrics", promhttp.Handler())
 
 	http.ListenAndServe(":8090", nil)
 }

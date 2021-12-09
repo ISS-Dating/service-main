@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	localSetup = false
+	localSetup = true
 )
 
 func main() {

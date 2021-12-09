@@ -205,12 +205,12 @@ func (r *Repository) ReadUserByUsername(username string) (model.User, error) {
 		return model.User{}, err
 	}
 
-	res := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+"FROM \"user\" WHERE username=$1",
+	res := r.db.QueryRow("SELECT "+strings.Join(userFields, ", ")+" FROM \"user\" WHERE username=$1",
 		username)
 	err = res.Scan(getModifyUserFields(&data)...)
 	if err != nil {
 		tx.Rollback()
-		return model.User{}, ErrorUserNotExist
+		return model.User{}, err
 	}
 
 	data.Stats, err = readStats(tx, data.ID)
