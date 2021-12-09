@@ -67,6 +67,7 @@ func (s *Service) BanUser(author model.User, username string, value bool) error 
 	}
 
 	user.Banned = value
+	user.Stats.BannedBefore = true
 
 	_, err = s.Repo.UpdateUser(user)
 
@@ -74,6 +75,14 @@ func (s *Service) BanUser(author model.User, username string, value bool) error 
 }
 
 func (s *Service) MatchUsers(usernameA, usernameB string) error {
+	userA, _ := s.Repo.ReadUserByUsername(usernameA)
+	userA.Stats.UsersMet++
+	s.Repo.UpdateUser(userA)
+
+	userB, _ := s.Repo.ReadUserByUsername(usernameB)
+	userB.Stats.UsersMet++
+	s.Repo.UpdateUser(userB)
+
 	return s.Repo.CreateAcquaintance(usernameA, usernameB)
 }
 
